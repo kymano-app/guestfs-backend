@@ -27,13 +27,12 @@ jobs:
 
       - name: Build in docker
         run: |
-          docker run --entrypoint /bin/sh --name guestfs --platform linux/${{ matrix.arch }} -v ${PWD}:/app alpine -c "pwd && \
-          cd /root/ && \ 
-          apk update && \
+          docker run --entrypoint /bin/sh --name guestfs --platform linux/${{ matrix.arch }} -v ${PWD}:/app alpine -c "apk update && \
           apk add git python3 make ninja gcc g++ musl-dev pkgconfig glib-dev pixman-dev perl && \
-          g++ guestfs.cpp -o guestfs"
+          g++ guestfs.cpp -o guestfs && \
+          cd /app"
 
-          sudo docker cp guestfs:/root/guestfs ./guestfs-${{ matrix.arch }}
+          sudo docker cp guestfs:/app/guestfs ./guestfs-${{ matrix.arch }}
 
       - name: Release
         uses: softprops/action-gh-release@v1
