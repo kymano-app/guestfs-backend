@@ -27,25 +27,17 @@ jobs:
 
       - name: Build in docker
         run: |
-          docker run --entrypoint /bin/sh --name qemu --platform linux/${{ matrix.arch }} alpine -c "pwd && \
+          docker run --entrypoint /bin/sh --name guestfs --platform linux/${{ matrix.arch }} -v ${PWD}:/app alpine -c "pwd && \
           cd /root/ && \ 
           apk update && \
           apk add git python3 make ninja gcc g++ musl-dev pkgconfig glib-dev pixman-dev perl && \
-          git clone git://git.qemu-project.org/qemu.git && \
-          cd qemu && \
-          git reset --hard 44f28df24767cf9dca1ddc9b23157737c4cbb645 && \
-          git submodule init && \
-          git submodule update --recursive && \
-          ./configure --target-list=x86_64-softmmu --disable-capstone && \
-          cd build && \
-          ninja && \
-          /root/qemu/build/qga/qemu-ga --help"
+          g++ guestfs.cpp -o guestfs"
 
-          sudo docker cp qemu:/root/qemu/build/qga/qemu-ga ./qemu-ga-${{ matrix.arch }}
+          sudo docker cp guestfs:/root/guestfs ./guestfs-${{ matrix.arch }}
 
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            qemu-ga-${{ matrix.arch }}
+            guestfs-${{ matrix.arch }}
           prerelease: true
