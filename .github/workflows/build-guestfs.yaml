@@ -1,0 +1,51 @@
+name: build-guestfs
+
+on:
+  push:
+    tags:
+      - "guestfs"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [x86_64, arm64]
+        platform: [linux]
+    steps:
+      - name: Branch name
+        id: branch_name
+        run: echo ::set-output name=SOURCE_TAG::${GITHUB_REF#refs/tags/}
+
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: setup-qemu-action
+        uses: docker/setup-qemu-action@v1
+
+      - name: Build in docker
+        run: |
+          docker run --entrypoint /bin/sh --name qemu --platform linux/${{ matrix.arch }} alpine -c "pwd && \
+          cd /root/ && \ 
+          apk update && \
+          apk add git python3 make ninja gcc g++ musl-dev pkgconfig glib-dev pixman-dev perl && \
+          git clone git://git.qemu-project.org/qemu.git && \
+          cd qemu && \
+          git reset --hard 44f28df24767cf9dca1ddc9b23157737c4cbb645 && \
+          git submodule init && \
+          git submodule update --recursive && \
+          ./configure --target-list=x86_64-softmmu --disable-capstone && \
+          cd build && \
+          ninja && \
+          /root/qemu/build/qga/qemu-ga --help"
+
+          sudo docker cp qemu:/root/qemu/build/qga/qemu-ga ./qemu-ga-${{ matrix.arch }}
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            qemu-ga-${{ matrix.arch }}
+          prerelease: true
