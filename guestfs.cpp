@@ -9,6 +9,8 @@
 #include <regex>
 #include <string>
 #include <vector>
+#include <chrono>
+#include <thread>
 
 using namespace std;
 struct stat info;
@@ -166,6 +168,8 @@ int main() {
             }
         }
     }
-    
+
+    this_thread::sleep_for(chrono::milliseconds(1000000));
+
     cout << "OK";
 }
