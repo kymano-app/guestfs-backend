@@ -168,8 +168,7 @@ int main() {
             }
         }
     }
-
-    this_thread::sleep_for(chrono::milliseconds(1000000));
+    this_thread::sleep_for(chrono::milliseconds(1000));
 
     cout << "OK";
 }
