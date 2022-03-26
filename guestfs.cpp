@@ -145,7 +145,7 @@ int main() {
         fs::create_directories("/mnt/kymano");
     }
 
-    while (true) {
+    //while (true) {
         auto connectedKymanoDisks = getConnectedKymanoDisks();
         for (connectedKymanoDisksStruct connectedKymanoDisk :
              connectedKymanoDisks) {
@@ -170,5 +170,5 @@ int main() {
             }
         }
         this_thread::sleep_for(chrono::milliseconds(500));
-    }
+    //}
 }
