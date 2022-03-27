@@ -163,36 +163,35 @@ void removeDirectoryIfUnmounted(string driveKymanoHash) {
     }
 }
 
-
 int main() {
     if (stat("/mnt/kymano", &info) != 0) {
         fs::create_directories("/mnt/kymano");
     }
 
-    // while (true) {
-    auto connectedKymanoDisks = getConnectedKymanoDisks();
-    for (connectedKymanoDisksStruct connectedKymanoDisk :
-         connectedKymanoDisks) {
-        auto diskIdsAndFs = getDiskIdsAndFs(connectedKymanoDisk.disk);
-        for (diskIdAndFS diskIdAndFS_ : diskIdsAndFs) {
-            string diskAndDiskId =
-                connectedKymanoDisk.disk + diskIdAndFS_.diskId;
-            string mountDirName = "/mnt/kymano/" +
-                                  connectedKymanoDisk.kymanoHash + "/" +
-                                  diskAndDiskId;
-            string mountCmd = "mount -t " + diskIdAndFS_.fs + " /dev/" +
-                              diskAndDiskId + " " + mountDirName;
-            if (stat(mountDirName.c_str(), &info) != 0) {
-                fs::create_directories(mountDirName);
-            }
-            int returnCode = system(mountCmd.c_str());
-            if (returnCode != 0) {
-                string umount = "umount " + mountDirName;
-                execAndReturnResult(umount.c_str());
-                removeDirectoryIfUnmounted(connectedKymanoDisk.kymanoHash);
+    while (true) {
+        auto connectedKymanoDisks = getConnectedKymanoDisks();
+        for (connectedKymanoDisksStruct connectedKymanoDisk :
+             connectedKymanoDisks) {
+            auto diskIdsAndFs = getDiskIdsAndFs(connectedKymanoDisk.disk);
+            for (diskIdAndFS diskIdAndFS_ : diskIdsAndFs) {
+                string diskAndDiskId =
+                    connectedKymanoDisk.disk + diskIdAndFS_.diskId;
+                string mountDirName = "/mnt/kymano/" +
+                                      connectedKymanoDisk.kymanoHash + "/" +
+                                      diskAndDiskId;
+                string mountCmd = "mount -t " + diskIdAndFS_.fs + " /dev/" +
+                                  diskAndDiskId + " " + mountDirName;
+                if (stat(mountDirName.c_str(), &info) != 0) {
+                    fs::create_directories(mountDirName);
+                }
+                int returnCode = system(mountCmd.c_str());
+                if (returnCode != 0) {
+                    string umount = "umount " + mountDirName;
+                    execAndReturnResult(umount.c_str());
+                    removeDirectoryIfUnmounted(connectedKymanoDisk.kymanoHash);
+                }
             }
         }
+        this_thread::sleep_for(chrono::milliseconds(500));
     }
-    this_thread::sleep_for(chrono::milliseconds(500));
-    // }
 }
