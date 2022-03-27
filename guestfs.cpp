@@ -163,6 +163,7 @@ void removeDirectoryIfUnmounted(string driveKymanoHash) {
     }
 }
 
+
 int main() {
     if (stat("/mnt/kymano", &info) != 0) {
         fs::create_directories("/mnt/kymano");
