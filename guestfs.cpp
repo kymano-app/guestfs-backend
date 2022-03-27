@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <nlohmann/json.hpp>
 #include <regex>
 #include <string>
 #include <thread>
@@ -15,6 +16,7 @@
 using namespace std;
 struct stat info;
 namespace fs = filesystem;
+using json = nlohmann::json;
 
 bool existsInArray(vector<string>& array, string search) {
     return find(begin(array), end(array), search) != end(array);
@@ -115,17 +117,38 @@ struct connectedKymanoDisksStruct {
 vector<connectedKymanoDisksStruct> getConnectedKymanoDisks() {
     auto alreadyMounted = getAlreadyMounted();
     vector<connectedKymanoDisksStruct> connectedKymanoDisks;
-    for (const auto& entry : fs::directory_iterator("/dev/disk/by-id")) {
-        string line = entry.path();
-        smatch match;
-        if (regex_search(line, match, regex("^.*HARDDISK_KY-(\\w+)-0:0$"))) {
-            string driveKymanoHash = match[1];
-            if (!existsInArray(alreadyMounted, driveKymanoHash)) {
-                string disk = fs::path(fs::read_symlink(line)).filename();
-                connectedKymanoDisksStruct connectedKymanoDisks_;
-                connectedKymanoDisks_.disk = disk;
-                connectedKymanoDisks_.kymanoHash = driveKymanoHash;
-                connectedKymanoDisks.push_back(connectedKymanoDisks_);
+
+    auto fdisks =
+        explode(execAndReturnResult("fdisk -l | grep \"Disk /dev/\""), "\n");
+    vector<diskIdAndFS> diskIds;
+    regex rgxPath("Disk ([\\w/]+)");
+    regex rgxDiskId("/dev/(\\w+)");
+    for (const string line : fdisks) {
+        smatch diskPathMatch;
+        if (regex_search(line.begin(), line.end(), diskPathMatch, rgxPath)) {
+            const string diskPath = diskPathMatch[1].str();
+            if (diskPath.find("/ram") != string::npos) {
+                continue;
+            }
+            string cmd = "smartctl -a " + diskPath + " -d scsi -j";
+            string smartctl = execAndReturnResult(cmd.c_str());
+            json second = json::parse(smartctl);
+            if (second["serial_number"] != nlohmann::detail::value_t::null) {
+                auto splittedSerial = explode(second["serial_number"], "KY-");
+                string driveKymanoHash = splittedSerial[1];
+                if (!existsInArray(alreadyMounted, driveKymanoHash)) {
+                    smatch diskIdmatch;
+                    regex_search(diskPath.begin(), diskPath.end(), diskIdmatch,
+                                 rgxDiskId);
+                    const string diskId = diskIdmatch[1].str();
+
+                    connectedKymanoDisksStruct connectedKymanoDisks_;
+                    connectedKymanoDisks_.disk = diskId;
+                    connectedKymanoDisks_.kymanoHash = driveKymanoHash;
+                    connectedKymanoDisks.push_back(connectedKymanoDisks_);
+
+                    cout << diskId << " : " << driveKymanoHash << '\n';
+                }
             }
         }
     }
@@ -145,30 +168,30 @@ int main() {
         fs::create_directories("/mnt/kymano");
     }
 
-    while (true) {
-        auto connectedKymanoDisks = getConnectedKymanoDisks();
-        for (connectedKymanoDisksStruct connectedKymanoDisk :
-             connectedKymanoDisks) {
-            auto diskIdsAndFs = getDiskIdsAndFs(connectedKymanoDisk.disk);
-            for (diskIdAndFS diskIdAndFS_ : diskIdsAndFs) {
-                string diskAndDiskId =
-                    connectedKymanoDisk.disk + diskIdAndFS_.diskId;
-                string mountDirName = "/mnt/kymano/" +
-                                      connectedKymanoDisk.kymanoHash + "/" +
-                                      diskAndDiskId;
-                string mountCmd = "mount -t " + diskIdAndFS_.fs + " /dev/" +
-                                  diskAndDiskId + " " + mountDirName;
-                if (stat(mountDirName.c_str(), &info) != 0) {
-                    fs::create_directories(mountDirName);
-                }
-                int returnCode = system(mountCmd.c_str());
-                if (returnCode != 0) {
-                    string umount = "umount " + mountDirName;
-                    execAndReturnResult(umount.c_str());
-                    removeDirectoryIfUnmounted(connectedKymanoDisk.kymanoHash);
-                }
+    // while (true) {
+    auto connectedKymanoDisks = getConnectedKymanoDisks();
+    for (connectedKymanoDisksStruct connectedKymanoDisk :
+         connectedKymanoDisks) {
+        auto diskIdsAndFs = getDiskIdsAndFs(connectedKymanoDisk.disk);
+        for (diskIdAndFS diskIdAndFS_ : diskIdsAndFs) {
+            string diskAndDiskId =
+                connectedKymanoDisk.disk + diskIdAndFS_.diskId;
+            string mountDirName = "/mnt/kymano/" +
+                                  connectedKymanoDisk.kymanoHash + "/" +
+                                  diskAndDiskId;
+            string mountCmd = "mount -t " + diskIdAndFS_.fs + " /dev/" +
+                              diskAndDiskId + " " + mountDirName;
+            if (stat(mountDirName.c_str(), &info) != 0) {
+                fs::create_directories(mountDirName);
+            }
+            int returnCode = system(mountCmd.c_str());
+            if (returnCode != 0) {
+                string umount = "umount " + mountDirName;
+                execAndReturnResult(umount.c_str());
+                removeDirectoryIfUnmounted(connectedKymanoDisk.kymanoHash);
             }
         }
-        this_thread::sleep_for(chrono::milliseconds(500));
     }
+    this_thread::sleep_for(chrono::milliseconds(500));
+    // }
 }
