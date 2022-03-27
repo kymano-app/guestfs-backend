@@ -18,6 +18,8 @@ struct stat info;
 namespace fs = filesystem;
 using json = nlohmann::json;
 
+const string VERSION = "0.0.3";
+
 bool existsInArray(vector<string>& array, string search) {
     return find(begin(array), end(array), search) != end(array);
 }
@@ -66,6 +68,24 @@ vector<string> getAlreadyMounted() {
     return alreadyMounted;
 }
 
+vector<string> getAlreadyMountedDiskIds() {
+    smatch match;
+    vector<string> alreadyMounted;
+    ifstream file("/etc/mtab");
+    if (file.is_open()) {
+        string line;
+        while (getline(file, line)) {
+            if (regex_search(line, match, regex("^(/dev/sd[a-z]+)"))) {
+                alreadyMounted.push_back(match[1]);
+                cout << "alreadyMounted: " << match[1] << '\n';
+            }
+        }
+        file.close();
+    }
+
+    return alreadyMounted;
+}
+
 struct diskIdAndFS {
     string diskId;
     string fs;
@@ -78,31 +98,32 @@ vector<diskIdAndFS> getDiskIdsAndFs(string diskName) {
     vector<diskIdAndFS> diskIds;
     for (int i0 = 1; i0 < parted.size(); i0++) {
         auto oneDiskArray = explode(parted[i0], "\n");
-        if ((oneDiskArray[1].find(diskName) != string::npos)) {
-            for (int i = 2; i < oneDiskArray.size(); i++) {
-                auto lineArray = explode(oneDiskArray[i], ":");
-                if (lineArray.size() == 1) {
-                    continue;
-                }
-                string diskId = lineArray[0];
-                string flagsStr = lineArray[6];
-                flagsStr = flagsStr.substr(0, flagsStr.find(";"));
-                auto flags = explode(flagsStr, ", ");
-                bool skip = false;
-                for (string flag : flags) {
-                    if (existsInArray(excludeFlags, flag)) {
-                        skip = true;
-                        continue;
-                    }
-                }
-                if (skip) {
-                    continue;
-                }
-                diskIdAndFS diskIdAndFS_;
-                diskIdAndFS_.diskId = diskId;
-                diskIdAndFS_.fs = lineArray[4];
-                diskIds.push_back(diskIdAndFS_);
+        if ((oneDiskArray[1].find(diskName) == string::npos)) {
+            continue;
+        }
+        for (int i = 2; i < oneDiskArray.size(); i++) {
+            auto lineArray = explode(oneDiskArray[i], ":");
+            if (lineArray.size() == 1) {
+                continue;
             }
+            string diskId = lineArray[0];
+            string flagsStr = lineArray[6];
+            flagsStr = flagsStr.substr(0, flagsStr.find(";"));
+            auto flags = explode(flagsStr, ", ");
+            bool skip = false;
+            for (string flag : flags) {
+                if (existsInArray(excludeFlags, flag)) {
+                    skip = true;
+                    continue;
+                }
+            }
+            if (skip) {
+                continue;
+            }
+            diskIdAndFS diskIdAndFS_;
+            diskIdAndFS_.diskId = diskId;
+            diskIdAndFS_.fs = lineArray[4];
+            diskIds.push_back(diskIdAndFS_);
         }
     }
 
@@ -115,42 +136,40 @@ struct connectedKymanoDisksStruct {
 };
 
 vector<connectedKymanoDisksStruct> getConnectedKymanoDisks() {
-    auto alreadyMounted = getAlreadyMounted();
+    auto alreadyMounted = getAlreadyMountedDiskIds();
     vector<connectedKymanoDisksStruct> connectedKymanoDisks;
-
-    auto fdisks =
-        explode(execAndReturnResult("fdisk -l | grep \"Disk /dev/\""), "\n");
-    vector<diskIdAndFS> diskIds;
-    regex rgxPath("Disk ([\\w/]+)");
-    regex rgxDiskId("/dev/(\\w+)");
-    for (const string line : fdisks) {
-        smatch diskPathMatch;
-        if (regex_search(line.begin(), line.end(), diskPathMatch, rgxPath)) {
-            const string diskPath = diskPathMatch[1].str();
-            if (diskPath.find("/ram") != string::npos) {
-                continue;
-            }
-            string cmd = "smartctl -a " + diskPath + " -d scsi -j";
-            string smartctl = execAndReturnResult(cmd.c_str());
-            json second = json::parse(smartctl);
-            if (second["serial_number"] != nlohmann::detail::value_t::null) {
-                auto splittedSerial = explode(second["serial_number"], "KY-");
-                string driveKymanoHash = splittedSerial[1];
-                if (!existsInArray(alreadyMounted, driveKymanoHash)) {
-                    smatch diskIdmatch;
-                    regex_search(diskPath.begin(), diskPath.end(), diskIdmatch,
-                                 rgxDiskId);
-                    const string diskId = diskIdmatch[1].str();
-
-                    connectedKymanoDisksStruct connectedKymanoDisks_;
-                    connectedKymanoDisks_.disk = diskId;
-                    connectedKymanoDisks_.kymanoHash = driveKymanoHash;
-                    connectedKymanoDisks.push_back(connectedKymanoDisks_);
-
-                    cout << diskId << " : " << driveKymanoHash << '\n';
-                }
-            }
+    for (const auto& entry : fs::directory_iterator("/dev/")) {
+        smatch match;
+        const string diskpath = entry.path();
+        if (!regex_search(diskpath, match, regex("^/dev/(sd[a-z]+)$"))) {
+            continue;
         }
+        string diskId = match[1];
+        string diskPath = "/dev/" + diskId;
+        cout << diskPath << endl;
+
+        if (existsInArray(alreadyMounted, diskPath)) {
+            cout << diskPath << ": "
+                 << "continue" << endl;
+            continue;
+        }
+
+        string cmd = "smartctl -a " + diskPath + " -d scsi -j";
+        string smartctl = execAndReturnResult(cmd.c_str());
+        json diskInfoJson = json::parse(smartctl);
+
+        if (diskInfoJson["serial_number"] == nlohmann::detail::value_t::null) {
+            continue;
+        }
+        auto splittedSerial = explode(diskInfoJson["serial_number"], "KY-");
+        string driveKymanoHash = splittedSerial[1];
+
+        connectedKymanoDisksStruct connectedKymanoDisks_;
+        connectedKymanoDisks_.disk = diskId;
+        connectedKymanoDisks_.kymanoHash = driveKymanoHash;
+        connectedKymanoDisks.push_back(connectedKymanoDisks_);
+
+        cout << diskId << " : " << driveKymanoHash << endl;
     }
 
     return connectedKymanoDisks;
@@ -164,12 +183,14 @@ void removeDirectoryIfUnmounted(string driveKymanoHash) {
 }
 
 int main() {
+    cout << VERSION << '\n';
     if (stat("/mnt/kymano", &info) != 0) {
         fs::create_directories("/mnt/kymano");
     }
 
     while (true) {
         auto connectedKymanoDisks = getConnectedKymanoDisks();
+        cout << "connectedKymanoDisks: " << connectedKymanoDisks.size() << endl;
         for (connectedKymanoDisksStruct connectedKymanoDisk :
              connectedKymanoDisks) {
             auto diskIdsAndFs = getDiskIdsAndFs(connectedKymanoDisk.disk);
@@ -185,13 +206,14 @@ int main() {
                     fs::create_directories(mountDirName);
                 }
                 int returnCode = system(mountCmd.c_str());
-                if (returnCode != 0) {
-                    string umount = "umount " + mountDirName;
-                    execAndReturnResult(umount.c_str());
-                    removeDirectoryIfUnmounted(connectedKymanoDisk.kymanoHash);
+                if (returnCode == 0) {
+                    continue;
                 }
+                string umount = "umount " + mountDirName;
+                execAndReturnResult(umount.c_str());
+                removeDirectoryIfUnmounted(connectedKymanoDisk.kymanoHash);
             }
         }
-        this_thread::sleep_for(chrono::milliseconds(500));
+        this_thread::sleep_for(chrono::milliseconds(2000));
     }
 }

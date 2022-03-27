@@ -20,6 +20,21 @@
     "__tree": "cpp",
     "forward_list": "cpp",
     "map": "cpp",
-    "valarray": "cpp"
+    "valarray": "cpp",
+    "__config": "cpp",
+    "__debug": "cpp",
+    "__locale": "cpp",
+    "__string": "cpp",
+    "bitset": "cpp",
+    "cstdlib": "cpp",
+    "fstream": "cpp",
+    "iomanip": "cpp",
+    "ios": "cpp",
+    "locale": "cpp",
+    "stdexcept": "cpp",
+    "system_error": "cpp",
+    "typeinfo": "cpp",
+    "version": "cpp",
+    "ostream": "cpp"
   }
 }
