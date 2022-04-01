@@ -18,7 +18,7 @@ struct stat info;
 namespace fs = filesystem;
 using json = nlohmann::json;
 
-const string VERSION = "0.0.3";
+const string VERSION = "0.0.4";
 
 bool existsInArray(vector<string>& array, string search) {
     return find(begin(array), end(array), search) != end(array);
@@ -92,15 +92,19 @@ struct diskIdAndFS {
 };
 
 vector<diskIdAndFS> getDiskIdsAndFs(string diskName) {
-    vector<string> excludeFlags = {"esp", "boot", "msftres"};
+    cout << "getDiskIdsAndFs: " << diskName << endl;
+    vector<string> excludeFlags = {"esp", "boot", "msftres", "swap"};
     auto parted =
         explode(execAndReturnResult("parted -lm 2>/dev/null"), "BYT;");
     vector<diskIdAndFS> diskIds;
     for (int i0 = 1; i0 < parted.size(); i0++) {
         auto oneDiskArray = explode(parted[i0], "\n");
-        if ((oneDiskArray[1].find(diskName) == string::npos)) {
+        smatch match;
+        if (!regex_search(oneDiskArray[1], match,
+                          regex("(/dev/" + diskName + ":)"))) {
             continue;
         }
+        cout << "oneDiskArray[1]" << oneDiskArray[1] << endl;
         for (int i = 2; i < oneDiskArray.size(); i++) {
             auto lineArray = explode(oneDiskArray[i], ":");
             if (lineArray.size() == 1) {
@@ -153,6 +157,7 @@ vector<connectedKymanoDisksStruct> getConnectedKymanoDisks() {
                  << "continue" << endl;
             continue;
         }
+        cout << "new:" << diskPath << endl;
 
         string cmd = "smartctl -a " + diskPath + " -d scsi -j";
         string smartctl = execAndReturnResult(cmd.c_str());
@@ -193,22 +198,33 @@ int main() {
     for (connectedKymanoDisksStruct connectedKymanoDisk :
          connectedKymanoDisks) {
         auto diskIdsAndFs = getDiskIdsAndFs(connectedKymanoDisk.disk);
-        for (diskIdAndFS diskIdAndFS_ : diskIdsAndFs) {
+
+        for (int i = 0; i < diskIdsAndFs.size(); i++) {
+            cout << "diskIdsAndFs[i]: " << diskIdsAndFs[i].diskId << endl;
+        }
+        for (int i = 0; i < diskIdsAndFs.size(); i++) {
+            diskIdAndFS diskIdAndFS_ = diskIdsAndFs[i];
+
             string diskAndDiskId =
                 connectedKymanoDisk.disk + diskIdAndFS_.diskId;
+            cout << "diskAndDiskId: " << diskAndDiskId << endl;
+
             string mountDirName = "/mnt/kymano/" +
                                   connectedKymanoDisk.kymanoHash + "/" +
                                   diskAndDiskId;
-            string mountCmd = "mount -t " + diskIdAndFS_.fs + " /dev/" +
+            string mountCmd = "mount -o ro -t '" + diskIdAndFS_.fs + "' /dev/" +
                               diskAndDiskId + " " + mountDirName;
             if (stat(mountDirName.c_str(), &info) != 0) {
                 fs::create_directories(mountDirName);
             }
+            cout << "mountCmd: " << mountCmd << endl;
             int returnCode = system(mountCmd.c_str());
+            cout << "returnCode: " << returnCode << endl;
             if (returnCode == 0) {
                 continue;
             }
             string umount = "umount " + mountDirName;
+            cout << "umount: " << umount << endl;
             execAndReturnResult(umount.c_str());
             removeDirectoryIfUnmounted(connectedKymanoDisk.kymanoHash);
         }
