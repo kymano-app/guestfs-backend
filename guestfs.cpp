@@ -229,5 +229,5 @@ int main() {
             removeDirectoryIfUnmounted(connectedKymanoDisk.kymanoHash);
         }
     }
-    this_thread::sleep_for(chrono::milliseconds(2000));
+    // this_thread::sleep_for(chrono::milliseconds(2000));
 }

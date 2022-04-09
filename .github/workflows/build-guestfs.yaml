@@ -30,9 +30,11 @@ jobs:
           docker run --entrypoint /bin/sh --name guestfs --platform linux/${{ matrix.arch }} -v ${PWD}:/app alpine -c "apk update && \
           apk add git python3 make ninja gcc g++ musl-dev pkgconfig glib-dev pixman-dev perl && \
           cd /app && \
+          g++ unmount.cpp -std=c++17 -I./ -o unmount && \
           g++ guestfs.cpp -std=c++17 -I./ -o guestfs && \
           g++ guestexec.cpp -std=c++17 -I./ -o guestexec"
 
+          sudo docker cp guestfs:/app/unmount ./unmount-${{ matrix.arch }}
           sudo docker cp guestfs:/app/guestfs ./guestfs-${{ matrix.arch }}
           sudo docker cp guestfs:/app/guestexec ./guestexec-${{ matrix.arch }}
 
@@ -40,6 +42,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
+            unmount-${{ matrix.arch }}
             guestfs-${{ matrix.arch }}
             guestexec-${{ matrix.arch }}
           prerelease: true

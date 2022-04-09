@@ -78,5 +78,6 @@
     "utility": "cpp",
     "variant": "cpp",
     "__bits": "cpp"
-  }
+  },
+  "C_Cpp.errorSquiggles": "Disabled"
 }
