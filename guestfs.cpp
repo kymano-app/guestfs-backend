@@ -18,7 +18,7 @@ struct stat info;
 namespace fs = filesystem;
 using json = nlohmann::json;
 
-const string VERSION = "0.0.4";
+const string VERSION = "0.0.5";
 
 bool existsInArray(vector<string>& array, string search) {
     return find(begin(array), end(array), search) != end(array);
@@ -212,7 +212,11 @@ int main() {
             string mountDirName = "/mnt/kymano/" +
                                   connectedKymanoDisk.kymanoHash + "/" +
                                   diskAndDiskId;
-            string mountCmd = "mount -o ro -t '" + diskIdAndFS_.fs + "' /dev/" +
+            string fsType = "";
+            if (diskIdAndFS_.fs != "") {
+                fsType = " -t '" + diskIdAndFS_.fs + "'";
+            }
+            string mountCmd = "mount -o ro " + fsType + " /dev/" +
                               diskAndDiskId + " " + mountDirName;
             if (stat(mountDirName.c_str(), &info) != 0) {
                 fs::create_directories(mountDirName);
