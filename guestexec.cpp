@@ -3,6 +3,7 @@
 #include <unistd.h>
 
 #include <iostream>
+#include <regex>
 #include <thread>
 
 #define DEV_PATH "/dev/virtio-ports/guestexec"
@@ -13,11 +14,20 @@ using namespace this_thread;
 
 void th(int dev_fd, string cmd) {
     cout << "cmd: " << cmd << endl;
+    smatch match;
+    regex_search(cmd, match, regex("^(.*?)#kymano#(.*)"));
+    cout << "match1: " << match[1] << endl;
+    cout << "match2: " << match[2] << endl;
+    string cmdId = match[1];
+    string endWithCmdId = "end" + cmdId + "\n";
+    string cmd_ = match[2];
+    cout << "endWithCmdId: " << endWithCmdId << endl;
+    cout << "cmd_: " << cmd_ << endl;
 
     array<char, 128> cmdResultBuffer;
     string result;
 
-    unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
+    unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd_.c_str(), "r"), pclose);
     if (!pipe) {
         perror("popen() failed!");
         exit(1);
@@ -26,9 +36,9 @@ void th(int dev_fd, string cmd) {
            nullptr) {
         write(dev_fd, cmdResultBuffer.data(), strlen(cmdResultBuffer.data()));
     }
-    cout << "end" << endl;
+    cout << "end" << endWithCmdId << endl;
 
-    write(dev_fd, "end\n", strlen("end\n"));
+    write(dev_fd, endWithCmdId.c_str(), strlen(endWithCmdId.c_str()));
 }
 int main(int argc, char* argv[]) {
     int dev_fd;
