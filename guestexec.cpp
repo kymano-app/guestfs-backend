@@ -3,6 +3,7 @@
 #include <unistd.h>
 
 #include <iostream>
+#include <mutex>
 #include <regex>
 #include <thread>
 
@@ -32,11 +33,14 @@ void th(int dev_fd, string cmd) {
     }
     while (fgets(cmdResultBuffer.data(), cmdResultBuffer.size(), pipe.get()) !=
            nullptr) {
+        mutex.lock();
         write(dev_fd, cmdResultBuffer.data(), strlen(cmdResultBuffer.data()));
+        mutex.unlock();
     }
+    mutex.lock();
     cout << "end: " << endWithCmdId << endl;
-
     write(dev_fd, endWithCmdId.c_str(), endWithCmdId.size());
+    mutex.unlock();
 }
 int main(int argc, char* argv[]) {
     int dev_fd;
