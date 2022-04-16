@@ -42,7 +42,7 @@ void th(int dev_fd, string cmd) {
     }
 
     m.lock();
-    cout << "end: " << endWithCmdId << endl;
+    cout << "end: " << endWithCmdId << endWithCmdId.size() << endl;
     write(dev_fd, endWithCmdId.c_str(), endWithCmdId.size());
     m.unlock();
     cout << "unlocked: " << endWithCmdId << endl;
@@ -58,7 +58,9 @@ int main(int argc, char* argv[]) {
     while (true) {
         char cmd[512] = {0};
         memset(cmd, 0, sizeof cmd);
+        m.lock();
         int valread = read(dev_fd, cmd, 512);
+        m.unlock();
         if (valread == 0) {
             sleep_for(milliseconds(50));
             continue;
