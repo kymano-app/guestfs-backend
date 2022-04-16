@@ -35,7 +35,7 @@ void th(int dev_fd, string cmd) {
     while (fgets(cmdResultBuffer.data(), cmdResultBuffer.size(), pipe.get()) !=
            nullptr) {
         m.lock();
-        cmdResultBuffer[strlen(cmdResultBuffer.data()-1] = '\n';
+        cmdResultBuffer[strlen(cmdResultBuffer.data())-1] = '\n';
         write(dev_fd, cmdResultBuffer.data(), strlen(cmdResultBuffer.data()));
         m.unlock();
     }
