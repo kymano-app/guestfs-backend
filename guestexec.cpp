@@ -16,8 +16,6 @@ void th(int dev_fd, string cmd) {
     cout << "cmd: " << cmd << endl;
     smatch match;
     regex_search(cmd, match, regex("^(.*?)#kymano#(.*)"));
-    cout << "match1: " << match[1] << endl;
-    cout << "match2: " << match[2] << endl;
     string cmdId = match[1];
     string endWithCmdId = "end" + cmdId + "\n";
     string cmd_ = match[2];
@@ -36,9 +34,9 @@ void th(int dev_fd, string cmd) {
            nullptr) {
         write(dev_fd, cmdResultBuffer.data(), strlen(cmdResultBuffer.data()));
     }
-    cout << "end" << endWithCmdId << endl;
+    cout << "end: " << endWithCmdId << endl;
 
-    write(dev_fd, endWithCmdId.c_str(), strlen(endWithCmdId.c_str()));
+    write(dev_fd, endWithCmdId.c_str(), strlen(endWithCmdId));
 }
 int main(int argc, char* argv[]) {
     int dev_fd;
