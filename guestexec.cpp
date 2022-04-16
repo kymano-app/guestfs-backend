@@ -35,6 +35,7 @@ void th(int dev_fd, string cmd) {
     while (fgets(cmdResultBuffer.data(), cmdResultBuffer.size(), pipe.get()) !=
            nullptr) {
         m.lock();
+        cmdResultBuffer[strlen(cmdResultBuffer.data()-1] = '\n';
         write(dev_fd, cmdResultBuffer.data(), strlen(cmdResultBuffer.data()));
         m.unlock();
     }
@@ -43,6 +44,7 @@ void th(int dev_fd, string cmd) {
     write(dev_fd, endWithCmdId.c_str(), endWithCmdId.size());
     m.unlock();
 }
+
 int main(int argc, char* argv[]) {
     int dev_fd;
     if ((dev_fd = open(DEV_PATH, O_RDWR)) == -1) {
