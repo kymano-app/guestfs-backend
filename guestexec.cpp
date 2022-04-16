@@ -32,6 +32,7 @@ void th(int dev_fd, string cmd) {
         perror("popen() failed!");
         exit(1);
     }
+    
     while (fgets(cmdResultBuffer.data(), cmdResultBuffer.size(), pipe.get()) !=
            nullptr) {
         m.lock();
