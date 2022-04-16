@@ -36,7 +36,7 @@ void th(int dev_fd, string cmd) {
     }
     cout << "end: " << endWithCmdId << endl;
 
-    write(dev_fd, endWithCmdId.c_str(), strlen(endWithCmdId));
+    write(dev_fd, endWithCmdId.c_str(), endWithCmdId.size());
 }
 int main(int argc, char* argv[]) {
     int dev_fd;
