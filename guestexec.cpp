@@ -12,6 +12,7 @@
 using namespace std;
 using namespace chrono;
 using namespace this_thread;
+std::mutex m;
 
 void th(int dev_fd, string cmd) {
     cout << "cmd: " << cmd << endl;
@@ -33,14 +34,14 @@ void th(int dev_fd, string cmd) {
     }
     while (fgets(cmdResultBuffer.data(), cmdResultBuffer.size(), pipe.get()) !=
            nullptr) {
-        mutex.lock();
+        m.lock();
         write(dev_fd, cmdResultBuffer.data(), strlen(cmdResultBuffer.data()));
-        mutex.unlock();
+        m.unlock();
     }
-    mutex.lock();
+    m.lock();
     cout << "end: " << endWithCmdId << endl;
     write(dev_fd, endWithCmdId.c_str(), endWithCmdId.size());
-    mutex.unlock();
+    m.unlock();
 }
 int main(int argc, char* argv[]) {
     int dev_fd;
