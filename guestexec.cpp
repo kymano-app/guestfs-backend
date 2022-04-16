@@ -36,16 +36,12 @@ void th(int dev_fd, string cmd) {
     while (fgets(cmdResultBuffer.data(), cmdResultBuffer.size(), pipe.get()) !=
            nullptr) {
         m.lock();
-        // cmdResultBuffer[strlen(cmdResultBuffer.data()) - 1] = '\n';
         write(dev_fd, cmdResultBuffer.data(), strlen(cmdResultBuffer.data()));
         m.unlock();
     }
-
     m.lock();
-    cout << "end: " << endWithCmdId.size() << endWithCmdId << endl;
     write(dev_fd, endWithCmdId.c_str(), endWithCmdId.size());
     m.unlock();
-    cout << "unlocked: " << endWithCmdId << endl;
 }
 
 int main(int argc, char* argv[]) {
