@@ -36,13 +36,13 @@ void th(int dev_fd, string cmd) {
     while (fgets(cmdResultBuffer.data(), cmdResultBuffer.size(), pipe.get()) !=
            nullptr) {
         m.lock();
-        cmdResultBuffer[strlen(cmdResultBuffer.data()) - 1] = '\n';
+        // cmdResultBuffer[strlen(cmdResultBuffer.data()) - 1] = '\n';
         write(dev_fd, cmdResultBuffer.data(), strlen(cmdResultBuffer.data()));
         m.unlock();
     }
 
     m.lock();
-    cout << "end: " << endWithCmdId << endWithCmdId.size() << endl;
+    cout << "end: " << endWithCmdId.size() << endWithCmdId << endl;
     write(dev_fd, endWithCmdId.c_str(), endWithCmdId.size());
     m.unlock();
     cout << "unlocked: " << endWithCmdId << endl;
@@ -58,9 +58,7 @@ int main(int argc, char* argv[]) {
     while (true) {
         char cmd[512] = {0};
         memset(cmd, 0, sizeof cmd);
-        m.lock();
         int valread = read(dev_fd, cmd, 512);
-        m.unlock();
         if (valread == 0) {
             sleep_for(milliseconds(50));
             continue;
