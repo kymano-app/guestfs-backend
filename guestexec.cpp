@@ -19,7 +19,7 @@ void th(int dev_fd, string cmd) {
     smatch match;
     regex_search(cmd, match, regex("^(.*?)#kymano#(.*)"));
     string cmdId = match[1];
-    string endWithCmdId = "end" + cmdId + "\n";
+    string endWithCmdId = "end" + cmdId + '\n';
     string cmd_ = match[2];
     cout << "endWithCmdId: " << endWithCmdId << endl;
     cout << "cmd_: " << cmd_ << endl;
@@ -32,18 +32,20 @@ void th(int dev_fd, string cmd) {
         perror("popen() failed!");
         exit(1);
     }
-    
+
     while (fgets(cmdResultBuffer.data(), cmdResultBuffer.size(), pipe.get()) !=
            nullptr) {
         m.lock();
-        cmdResultBuffer[strlen(cmdResultBuffer.data())-1] = '\n';
+        cmdResultBuffer[strlen(cmdResultBuffer.data()) - 1] = '\n';
         write(dev_fd, cmdResultBuffer.data(), strlen(cmdResultBuffer.data()));
         m.unlock();
     }
+
     m.lock();
     cout << "end: " << endWithCmdId << endl;
     write(dev_fd, endWithCmdId.c_str(), endWithCmdId.size());
     m.unlock();
+    cout << "unlocked: " << endWithCmdId << endl;
 }
 
 int main(int argc, char* argv[]) {
