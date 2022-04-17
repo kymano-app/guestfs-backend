@@ -47,7 +47,7 @@ void th(int dev_fd, string cmd) {
 
 int main(int argc, char* argv[]) {
     int dev_fd;
-    string devPath = DEV_PATH + argv[1];
+    string devPath = string(DEV_PATH) + string(argv[1]);
     if ((dev_fd = open(devPath.c_str(), O_RDWR)) == -1) {
         perror("open");
         exit(1);
