@@ -24,7 +24,7 @@ void th(int dev_fd, string cmd) {
     cout << "endWithCmdId: " << endWithCmdId << endl;
     cout << "cmd_: " << cmd_ << endl;
 
-    array<char, 128> cmdResultBuffer;
+    array<char, 256> cmdResultBuffer;
     string result;
 
     unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd_.c_str(), "r"), pclose);
@@ -36,7 +36,6 @@ void th(int dev_fd, string cmd) {
     while (fgets(cmdResultBuffer.data(), cmdResultBuffer.size(), pipe.get()) !=
            nullptr) {
         cmdResultBuffer[strlen(cmdResultBuffer.data()) - 1] = '\n';
-        cout << cmdResultBuffer.data();
         m.lock();
         write(dev_fd, cmdResultBuffer.data(), strlen(cmdResultBuffer.data()));
         m.unlock();
