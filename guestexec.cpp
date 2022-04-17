@@ -35,6 +35,8 @@ void th(int dev_fd, string cmd) {
 
     while (fgets(cmdResultBuffer.data(), cmdResultBuffer.size(), pipe.get()) !=
            nullptr) {
+        cmdResultBuffer[strlen(cmdResultBuffer.data()) - 1] = '\n';
+        cout << cmdResultBuffer.data();
         m.lock();
         write(dev_fd, cmdResultBuffer.data(), strlen(cmdResultBuffer.data()));
         m.unlock();
