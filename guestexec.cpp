@@ -43,6 +43,7 @@ void th(int dev_fd, string cmd) {
     write(dev_fd, endWithCmdId.c_str(), endWithCmdId.size());
     write(dev_fd, endWithCmdId.c_str(), endWithCmdId.size());
     m.unlock();
+    cout << "unlocked: " << cmd_ << endl;
 }
 
 int main(int argc, char* argv[]) {
