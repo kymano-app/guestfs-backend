@@ -41,6 +41,7 @@ void th(int dev_fd, string cmd) {
     }
     m.lock();
     write(dev_fd, endWithCmdId.c_str(), endWithCmdId.size());
+    write(dev_fd, endWithCmdId.c_str(), endWithCmdId.size());
     m.unlock();
 }
 
