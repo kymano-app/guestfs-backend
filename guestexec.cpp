@@ -58,7 +58,7 @@ int main(int argc, char* argv[]) {
         memset(cmd, 0, sizeof cmd);
         int valread = read(dev_fd, cmd, 512);
         if (valread == 0) {
-            sleep_for(milliseconds(50));
+            sleep_for(milliseconds(100));
             continue;
         }
         std::thread t(th, dev_fd, string(cmd));
