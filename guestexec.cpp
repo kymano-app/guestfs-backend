@@ -7,7 +7,7 @@
 #include <regex>
 #include <thread>
 
-#define DEV_PATH "/dev/virtio-ports/guestexec"
+#define DEV_PATH "/dev/virtio-ports/"
 
 using namespace std;
 using namespace chrono;
@@ -41,14 +41,13 @@ void th(int dev_fd, string cmd) {
     }
     m.lock();
     write(dev_fd, endWithCmdId.c_str(), endWithCmdId.size());
-    write(dev_fd, endWithCmdId.c_str(), endWithCmdId.size());
     m.unlock();
     cout << "unlocked: " << cmd_ << endl;
 }
 
 int main(int argc, char* argv[]) {
     int dev_fd;
-    if ((dev_fd = open(DEV_PATH, O_RDWR)) == -1) {
+    if ((dev_fd = open(DEV_PATH + argv[1], O_RDWR)) == -1) {
         perror("open");
         exit(1);
     }
