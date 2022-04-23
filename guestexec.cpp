@@ -19,7 +19,7 @@ void th(int dev_fd, string cmd) {
     smatch match;
     regex_search(cmd, match, regex("^(.*?)#kymano#(.*)"));
     string cmdId = match[1];
-    string endWithCmdId = '\0' + "end" + cmdId + '\0';
+    string endWithCmdId = '\0' + "end" + cmdId;
     string cmd_ = match[2];
     cout << "endWithCmdId: " << endWithCmdId << endl;
     cout << "cmd_: " << cmd_ << endl;
