@@ -81,6 +81,7 @@ void th(int dev_fd, string cmd) {
     // nulls++;
     //}
     // m.lock();
+    send0Byte(dev_fd);
     write(dev_fd, endWithCmdId.c_str(), endWithCmdId.size());
     send0Byte(dev_fd);
     // m.unlock();
