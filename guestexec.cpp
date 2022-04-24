@@ -14,35 +14,76 @@ using namespace chrono;
 using namespace this_thread;
 std::mutex m;
 
+const int bufSize = 256;
+
+void send0Byte(int sockfd) {
+    uint8_t zero_byte(0);
+    write(sockfd, &zero_byte, 1);
+}
+
 void th(int dev_fd, string cmd) {
     cout << "cmd: " << cmd << endl;
     smatch match;
     regex_search(cmd, match, regex("^(.*?)#kymano#(.*)"));
     string cmdId = match[1];
-    string endWithCmdId = "\0end" + cmdId;
+    string endWithCmdId = "end" + cmdId + "\0";
     string cmd_ = match[2];
     cout << "endWithCmdId: " << endWithCmdId << endl;
     cout << "cmd_: " << cmd_ << endl;
 
-    array<char, 256> cmdResultBuffer;
+    array<char, bufSize> cmdResultBuffer;
     string result;
 
-    unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd_.c_str(), "r"), pclose);
-    if (!pipe) {
-        perror("popen() failed!");
-        exit(1);
-    }
+    FILE* pipe = NULL;
+    pipe = popen(cmd_.c_str(), "r");
+    // FILE* pipe = popen(cmd_.c_str(), "r");
+    // unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd_.c_str(), "r"),
+    // pclose);
+    // auto pipe = shared_ptr<FILE>( popen(cmd_.c_str(), "r"), &pclose );
+    //  if (!pipe) {
+    //      perror("popen() failed!");
+    //      exit(1);
+    //  }
 
-    while (fgets(cmdResultBuffer.data(), cmdResultBuffer.size(), pipe.get()) !=
-           nullptr) {
-        // cmdResultBuffer[strlen(cmdResultBuffer.data()) - 1] = '\n';
-        m.lock();
-        write(dev_fd, cmdResultBuffer.data(), strlen(cmdResultBuffer.data()));
-        m.unlock();
+    // int nulls = 0;
+    string szResult;
+    // while (nulls < 10) {
+    // cout << "nulls: " << nulls << endl;
+    cmdResultBuffer = {0};
+    // while (fgets(cmdResultBuffer.data(), cmdResultBuffer.size(),
+    //              pipe) != NULL) {
+    while (!feof(pipe)) {
+        // try to read 255 bytes from the stream, this operation is BLOCKING
+        int nRead = fread(cmdResultBuffer.data(), 1, bufSize - 1, pipe);
+        // cout << std::string(&cmdResultBuffer[0], 256) << endl;
+
+        // there are something or nothing to read because the stream is
+        // closed or the program catch an error signal
+        cout << "nRead: " << nRead << endl;
+        if (nRead > 0) {
+            // cmdResultBuffer[nRead] = '\0';
+            // szResult += cmdResultBuffer.data();
+        }
+        // cout << szResult << endl;
+        // cout << "fgets" << endl;
+        // nulls = 0;
+        //  cmdResultBuffer[strlen(cmdResultBuffer.data()) - 1] = '\n';
+        //  string data = string(cmdResultBuffer.data());
+        //  int dataSize = data.size();
+        //  m.lock();
+        //  if (dataSize < bufSize - 1) {
+        //      cout << "dataSize: " << dataSize << endl;
+        //      dataSize = dataSize + 1;
+        //  }
+        write(dev_fd, cmdResultBuffer.data(), nRead);
+        // m.unlock();
     }
-    m.lock();
+    // nulls++;
+    //}
+    // m.lock();
     write(dev_fd, endWithCmdId.c_str(), endWithCmdId.size());
-    m.unlock();
+    send0Byte(dev_fd);
+    // m.unlock();
     cout << "unlocked: " << cmd_ << endl;
 }
 
