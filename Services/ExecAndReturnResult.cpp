@@ -1,6 +1,7 @@
 #include <string>
 #include <array>
 #include <memory>
+#include <stdexcept>
 
 using namespace std;
 
