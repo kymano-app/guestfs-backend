@@ -27,7 +27,7 @@ jobs:
 
       - name: Build in docker
         run: |
-          docker run --entrypoint /bin/sh --name guestfs --platform linux/${{ matrix.arch }} -v ${PWD}:/app alpine -c "apk add g++ && \
+          docker run --entrypoint /bin/sh --name guestfs --platform linux/${{ matrix.arch }} -v ${PWD}:/app alpine:3.15 -c "apk add g++ && \
           cd /app && \
           g++ unmount.cpp -std=c++17 -I./ -o unmount && \
           g++ guestfs.cpp -std=c++17 -I./ -o guestfs && \
