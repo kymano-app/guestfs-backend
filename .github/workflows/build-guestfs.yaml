@@ -27,12 +27,13 @@ jobs:
 
       - name: Build in docker
         run: |
-          docker run --entrypoint /bin/sh --name guestfs --platform linux/${{ matrix.arch }} -v ${PWD}:/app alpine -c "apk update && \
-          apk add git python3 make ninja gcc g++ musl-dev pkgconfig glib-dev pixman-dev perl && \
+          docker run --entrypoint /bin/sh --name guestfs --platform linux/${{ matrix.arch }} -v ${PWD}:/app alpine -c "apk add g++ && \
           cd /app && \
           g++ unmount.cpp -std=c++17 -I./ -o unmount && \
           g++ guestfs.cpp -std=c++17 -I./ -o guestfs && \
-          g++ guestexec.cpp -std=c++17 -I./ -o guestexec"
+          g++ guestexec.cpp -std=c++17 -I./ -o guestexec && \
+          chmod +x guestfs && \
+          ./guestfs"
 
           sudo docker cp guestfs:/app/unmount ./unmount-${{ matrix.arch }}
           sudo docker cp guestfs:/app/guestfs ./guestfs-${{ matrix.arch }}
