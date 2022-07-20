@@ -5,8 +5,8 @@
 
 #include <Exceptions/MountUnknownFilesystemException.cpp>
 #include <Services/ExecAndReturnResult.cpp>
-#include <Services/GetConnectedKymanoDisks.cpp>
 #include <Services/GetAlreadyMounted.cpp>
+#include <Services/GetConnectedKymanoDisks.cpp>
 #include <Services/GetDiskIdsAndFs.cpp>
 #include <Services/RemoveDirectoryIfUnmounted.cpp>
 #include <chrono>
@@ -25,7 +25,7 @@ using namespace std;
 using json = nlohmann::json;
 using ordered_json = nlohmann::ordered_json;
 
-const string VERSION = "0.0.7";
+const string VERSION = "0.0.8";
 
 struct stat info;
 
@@ -44,6 +44,13 @@ int main() {
         for (connectedKymanoDisksStruct connectedKymanoDisk :
              connectedKymanoDisks) {
             auto diskIdsAndFs = GetDiskIdsAndFs(connectedKymanoDisk.disk);
+
+            if (diskIdsAndFs.size() == 0) {
+                throw runtime_error(
+                    "Can't see the disk with 'parted'. " +
+                    ExecAndReturnResult("parted -lm 2>/dev/null")+
+                    ExecAndReturnResult("ls -l /dev/ | grep sda"));
+            }
 
             for (int i = 0; i < diskIdsAndFs.size(); i++) {
                 diskIdAndFS diskIdAndFS_ = diskIdsAndFs[i];
@@ -100,6 +107,6 @@ int main() {
                            {"message", e.what()}};
         cout << jn.dump() << endl;
     }
-    
+
     return 1;
 }
